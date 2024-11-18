@@ -79,7 +79,7 @@ ggplot( data= meteoritos,
        mapping = aes(x = CONTINENTE , y = mass, color = CONTINENTE, size = mass)) +
   geom_point(alpha = 0.7) + labs(
     title = "Distribucion por Continente y Masa",
-    x = "COntinente",
+    x = "Continente",
     y = "Masa",
     color = "Continente",
     size = "Masa"
