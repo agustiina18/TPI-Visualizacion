@@ -1,0 +1,166 @@
+---
+title: "Trabajo Práctico Integrador"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+
+meteoritos <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-11/meteorites.csv")
+
+```
+
+```{r}
+# Visualizar las primeras filas del dataset
+   head(meteoritos)
+```
+
+La base de datos `meteoritos` contiene información de impactos de meteoritos y su fuente es la NASA. Incluye información sobre más de 45.000 meteoritos, incluyendo su nombre, ubicación, masa y año de impacto. 
+
+### **Parte 1**
+
+**Pregunta:** ¿Cuál es la distribución geográfica de los meteoritos y donde cayeron los más pesados? 
+
+
+**Introducción:** La base de datos a utilizar ha recabado información de diferentes meteoritos a lo largo de los años. En esencia se podrá determinar la distribución geografica a partir de las columnas latitud y longitud o bien a partir de la columna geolocalización. Naturalmente que para determinar donde han caido los meteoritos mas pesados nos ayudaremos de la columna mass.
+
+**Enfoque:** Como desconociamos el estado del dataset y a los fines de evitar los valores null en la columnas lat y long, se procedio a clasificar a que continentes pertencian. Ello mediante una funcion clasificar continente que conforme a lat y long leida determinaba a que contiente pertenencia dicho punto geografico. Posterior a ello, se creo una columna CONTINENTE la cual se utilizo en un grafico geom_bar para graficar la catidad de meteoritos caidos por continente, responden al primer interrogante sobre la distribución geográfica. 
+
+**Analisis:** El grafico de barras se utiliza para mostrar la distribucion. Intuitivamente se puede apreciar que el continente mas afectado por los meteritos es Europa. Habiendo dicho esto, con solo mirar el grafico, nos da la pauta de que tomamos la opcion correcta, al diseñar el grafico de barras, ordenandolo por cantidad de meteoritos por continente. De manera similar pasa con el grafico de puntos, el tamaño de los puntos determina su masa y los colores nos indican el continente. Sin pasar por el dataset podemos ver como America ha recibido los meteoritos mas grandes, mas alla de que Europa haya tenido la caida de meteoritos grandes, en algunas ocasiones
+
+
+```{r}
+#Contar los valores null
+   na_count <- 0 
+#Clasificar los meteoritos por continente
+clasificar_continente <- function(lat, long) {
+  if(is.na(lat) || is.na(long)){
+    na_count <<- na_count + 1
+    return(NA)
+  }
+  if (lat >= -60 & lat <= 90 & long >= -170 & long <= -30){
+    return("AMERICA")
+  } else if (lat >= -50 & lat <= 60 & long >= -10 & long <= 60){
+    return("EUROPA")
+  }else if (lat >= -35 & lat <= 40 & long >= 20 & long <= 180){
+    return("ASIA")
+  }else if (lat >= -40 & lat <= -10 & long >= 110 & long <= 155){
+    return("OCEANIA")
+  }else if (lat >= -35 & lat <= -10 & long >= -20 & long <= 55){
+    return("AFRICA")
+  }else {
+    na_count <<- na_count +1
+    return(NA)
+  }
+}  
+  #Crear una columna continente con mutate
+meteoritos <-meteoritos %>%
+  mutate(CONTINENTE = mapply(clasificar_continente, lat, long))
+
+ # Contar la cantidad de meteoritos por CONTINENTE
+conteo_meteoritos <- meteoritos %>%
+  dplyr::filter(!is.na(CONTINENTE)) %>%
+  group_by(CONTINENTE) %>%
+  summarise(cantidad = n())
+
+
+  #Gráfico de barras de la cantidad de meteoritos por continente
+ggplot(conteo_meteoritos, aes(x = fct_reorder(CONTINENTE, cantidad), y = cantidad, fill = CONTINENTE)) +
+  geom_bar(stat = "identity") +
+  labs(x = "CONTINENTE" , y = "cantidad",fill = "CONTINENTE") +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot( data= meteoritos,
+       mapping = aes(x = CONTINENTE , y = mass, color = CONTINENTE, size = mass)) +
+  geom_point(alpha = 0.7) + labs(
+    title = "Distribucion por Continente y Masa",
+    x = "COntinente",
+    y = "Masa",
+    color = "Continente",
+    size = "Masa"
+  ) + 
+  theme_minimal() +
+  scale_size_continuous(range = c(1,10))
+```
+
+
+**Discusión:** Nos permitimos concluir que la distribucion geografica es totalmente dispar. Asimismo, la cantidad de meteroritos caidos por zona tampoco esta relacionada con el peso de los mismos. Puede y de hecho hay cierta aleatoriedad en la ocurrencia de estos eventos, aun dificiles de predecir con exactitud.
+
+### **Parte 2**
+
+**Pregunta:** ¿Podriamos establecer alguna relacion entre la masa y alguna de las coordenadas del impacto?
+
+**Introducción:** Para responder la segunda pregunta tenemos que analizar donde han caido los meteoritos mas grandes y que ocurre en ese continente respecto a su topografia
+
+**Enfoque:** Vamos a utilizar una combinacion de graficos para responder nuestro interrogante. Un grafico para saber que continente tiene mas meteoritos por encima de su mediana (BOX PLOT) otro grafico para saber la cantidad de meteoritos caidos por continente (GEOM_BAR) y otro para saber el peso total de meteoritos caidos por continente (GEOM_LINE).
+
+**Analisis:** De los graficos se desprende que han caido mas meteoritos pesados en el continente AMERICANO, tambien podemos decir que en EUROPA tenemos mas meteritos caidos, pero los meteoritos en zona outlier son menos que en AMERICA.
+
+```{r}
+   library(patchwork)
+
+
+
+# Gráfico 2: Boxplot de masa de meteoritos por continente
+g2 <- ggplot(meteoritos) +
+  geom_boxplot(aes(x = CONTINENTE, y = mass, fill = CONTINENTE)) +
+  labs(title = "Distribución de la masa de meteoritos por continente") +
+  theme_minimal()
+
+# Gráfico 3: Barra de cantidad de meteoritos por continente
+g3 <- ggplot(conteo_meteoritos) +
+  geom_bar(aes(x = CONTINENTE, y = cantidad, fill = CONTINENTE), stat = "identity") +
+  labs(title = "Cantidad de meteoritos por continente") +
+  theme_minimal()
+
+# Combinación de gráficos
+( g2) / g3 +
+  plot_annotation(
+    tag_levels = "a",
+    title = "Análisis de Meteoritos",
+    subtitle = "Distribución Geográfica y Masa de Meteoritos",
+    caption = "Fuente: NASA"
+  )
+
+
+```
+
+```{r }
+   
+resumen_meteoritos <- meteoritos %>%
+  dplyr::filter(!is.na(CONTINENTE)) %>%
+  group_by(CONTINENTE) %>% #Usamos group_by para agrupar
+  summarise(               #Sumamos peso por continente
+    cant_total = n(),                # Total de meteoritos por continente
+    peso_total = sum(mass, na.rm = TRUE) # Peso total de los meteoritos por continente
+  )
+
+
+print(resumen_meteoritos) # Vemos los resultados por pantalla
+
+
+```
+```{r}
+   
+library(ggplot2)
+
+ggplot(resumen_meteoritos, aes(x = CONTINENTE, y = peso_total, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(size = 3, color = "red") +
+  geom_text(aes(label = cant_total), hjust = -0.3, vjust = -0.5, color = "black") + # Etiquetas de cantidad
+  labs(title = "Peso total de meteoritos caídos por continente",
+       x = "Continente",
+       y = "Masa de meteoritos") +
+  theme_minimal()
+
+
+```
+
+
+
+**Discusión:** Los resultados obtenidos podemos concluir que los meteoritos mas grandes han caido en las latitudes y longitudes correspondientes al continente AMERICANO. Y tiene cierta logica puesto que la evidencia cientifica demuestra que el cataclismo que extinguio a los dinosaurios cayo en el continente AMERICANO
