@@ -1,7 +1,9 @@
 ---
 title: "Trabajo Práctico Integrador"
+author: "Gustavo Enrique Gonzalez, Agustina Del Castillo, Lorenzo Gaston"
 output:
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -75,7 +77,7 @@ ggplot(conteo_meteoritos, aes(x = fct_reorder(CONTINENTE, cantidad), y = cantida
 ```
 
 ```{r}
-ggplot( data= meteoritos,
+ggplot( data = meteoritos,
        mapping = aes(x = CONTINENTE , y = mass, color = CONTINENTE, size = mass)) +
   geom_point(alpha = 0.7) + labs(
     title = "Distribucion por Continente y Masa",
@@ -102,32 +104,10 @@ ggplot( data= meteoritos,
 **Analisis:** De los graficos se desprende que han caido mas meteoritos pesados en el continente AMERICANO, tambien podemos decir que en EUROPA tenemos mas meteritos caidos, pero los meteoritos en zona outlier son menos que en AMERICA.
 
 ```{r}
-   library(patchwork)
-
-
-
-# Gráfico 2: Boxplot de masa de meteoritos por continente
-g2 <- ggplot(meteoritos) +
+# Gráfico : Boxplot de masa de meteoritos por continente
+  ggplot(meteoritos) +
   geom_boxplot(aes(x = CONTINENTE, y = mass, fill = CONTINENTE)) +
-  labs(title = "Distribución de la masa de meteoritos por continente") +
   theme_minimal()
-
-# Gráfico 3: Barra de cantidad de meteoritos por continente
-g3 <- ggplot(conteo_meteoritos) +
-  geom_bar(aes(x = CONTINENTE, y = cantidad, fill = CONTINENTE), stat = "identity") +
-  labs(title = "Cantidad de meteoritos por continente") +
-  theme_minimal()
-
-# Combinación de gráficos
-( g2) / g3 +
-  plot_annotation(
-    tag_levels = "a",
-    title = "Análisis de Meteoritos",
-    subtitle = "Distribución Geográfica y Masa de Meteoritos",
-    caption = "Fuente: NASA"
-  )
-
-
 ```
 
 ```{r }
